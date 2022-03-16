@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS instructor,course,course_instructors,course_types; 
+DROP TABLE IF EXISTS instructor,course,course_instructors; 
 
 CREATE TABLE instructor (
 	inst_id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -16,7 +16,9 @@ CREATE TABLE course (
     sched_discussion varchar(100),
     sched_tutorial varchar(100),
     sched_practical varchar(100),
-    sched_bitmap BINARY(180) NOT NULL
+    sched_bitmap BINARY(180) NOT NULL,
+    course_type varchar(255) NOT NULL,
+    course_type_bitmap BINARY(4) NOT NULL
 );
 
 CREATE TABLE course_instructors (
@@ -25,11 +27,4 @@ CREATE TABLE course_instructors (
 	FOREIGN KEY (course_id) REFERENCES course(course_id),
     FOREIGN KEY (inst_id) REFERENCES instructor(inst_id),
     PRIMARY KEY (course_id,inst_id)
-);
-
-CREATE TABLE course_types (
-	course_id int,
-    course_type char(20) NOT NULL,
-    FOREIGN KEY (course_id) REFERENCES course(course_id),
-    PRIMARY KEY (course_id,course_type)
-);
+); 

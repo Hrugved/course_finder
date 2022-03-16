@@ -1,3 +1,4 @@
+
 const readXlsxFile = require('read-excel-file/node')
 const mysql = require('mysql');
 const path = require('path');
@@ -20,27 +21,27 @@ db.query(query_setup, function (err, _) {
   readXlsxFile('./Course_Schedule_2021-22-2-converted.xlsx').then((rows) => {
     rows.shift(); // skip header
     const instructorsMap = new Map();
-    const courseTypesMap = new Map();
     let sql_course = `INSERT IGNORE INTO course VALUES`;
     let sql_instructor = `INSERT IGNORE INTO instructor VALUES`;
     rows.forEach(row => {
-      const branch = row[1];
+      const branch = row[1].toUpperCase();
       // console.log(branch);
-      const course_raw = row[2];
+      const course_raw = row[2].toUpperCase();
       const course_name_extended = course_raw.substring(0, course_raw.indexOf("(")).trim();
       // console.log(course_name_extended);
       const course_name = course_raw.substring(course_raw.indexOf("(")+1,course_raw.indexOf(")")).trim();
       // console.log(course_name);
-      const credits_raw = row[4];
+      const credits_raw = row[4].toUpperCase();
       const credits_extended = credits_raw.substring(0, credits_raw.indexOf("(")).trim();
       // console.log(credits_extended);
       const credits = Number(credits_raw.substring(credits_raw.indexOf("(")+1,credits_raw.indexOf(")")).trim());
       // console.log(credits);
-      let course_types = row[5].split(/,|\//); // comma or forward-slash
-      course_types = course_types.map(raw => raw.trim());
-      // console.log(course_types);
-      courseTypesMap.set(course_name,course_types);
-      let instructors = row[6].split(',');
+      const course_type = row[5].toUpperCase();
+      let course_type_list = course_type.split(/,|\//); // comma or forward-slash
+      course_type_list = course_type_list.map(raw => raw.replace(/\s/g, '').trim());
+      course_types_bitmap = getCourseTypesBitmap(course_type_list);
+      console.log(course_types_bitmap);
+      let instructors = row[6].toUpperCase().split(',');
       instructors = instructors.map(raw => raw.substring(0,raw.indexOf('(')).trim());
       // console.log(instructors);
       instructorsMap.set(course_name,instructors);
@@ -50,31 +51,31 @@ db.query(query_setup, function (err, _) {
       let sched_bitmap = ""; sched_bitmap = sched_bitmap.padStart(1440,'0');
       let sched_discussion = row[8];
       if(sched_discussion) {
-        sched_discussion = sched_discussion.replace(/(\r\n|\n|\r)/gm, ""); // remove newlines
+        sched_discussion = sched_discussion.toUpperCase().replace(/(\r\n|\n|\r)/gm, ""); // remove newlines
         // console.log(sched_discussion);
         sched_bitmap = getBitmap(sched_bitmap,sched_discussion);
       }
       let sched_tutorial = row[9];
       if(sched_tutorial) {
-        sched_tutorial = sched_tutorial.replace(/(\r\n|\n|\r)/gm, ""); // remove newlines
+        sched_tutorial = sched_tutorial.toUpperCase().replace(/(\r\n|\n|\r)/gm, ""); // remove newlines
         // console.log(sched_tutorial);
         sched_bitmap = getBitmap(sched_bitmap,sched_tutorial);
       }
       let sched_practical = row[10];
       if(sched_practical) {
-        sched_practical = sched_practical.replace(/(\r\n|\n|\r)/gm, ""); // remove newlines
+        sched_practical = sched_practical.toUpperCase().replace(/(\r\n|\n|\r)/gm, ""); // remove newlines
         // console.log(sched_practical);
         sched_bitmap = getBitmap(sched_bitmap,sched_practical);
       }
-      // console.log(sched_bitmap);
-      sql_course += ` (DEFAULT, '${course_name}', '${course_name_extended}', '${branch}', ${credits}, '${credits_extended}', '${sched_discussion}', '${sched_tutorial}', '${sched_practical}', b'${sched_bitmap}'),`;
+      console.log(sched_bitmap);
+      sql_course += ` (DEFAULT, '${course_name}', '${course_name_extended}', '${branch}', ${credits}, '${credits_extended}', '${sched_discussion}', '${sched_tutorial}', '${sched_practical}', b'${sched_bitmap}', '${course_type}', b'${course_types_bitmap}' ),`;
       instructors.forEach((inst,i) => {
         sql_instructor += ` (DEFAULT, '${inst}', '${instructors_email[i]}'),`;  
       })
     });
     sql_course = sql_course.replace(/.$/,";");
     sql_instructor = sql_instructor.replace(/.$/,";");
-    // console.log(sql_instructor);
+    console.log(sql_instructor);
     db.query(sql_course, function (err, result) {
       if (err) throw err;
       console.log("records inserted into course");
@@ -92,20 +93,8 @@ db.query(query_setup, function (err, _) {
         db.query(sql_course_instructors, function (err, result) {
           if (err) throw err;
           console.log("records inserted into course_instructors");
-          let sql_course_types = `INSERT IGNORE INTO course_types VALUES`;
-          for (const [course_name, types] of courseTypesMap) {
-            types.forEach(type => {
-              sql_course_types += `((SELECT course_id FROM course WHERE course_name = '${course_name}' LIMIT 1),'${type}'),`;
-            });
-          }
-          sql_course_types = sql_course_types.replace(/.$/,";");
-          // console.log(sql_course_types);
-          db.query(sql_course_types, function (err, result) {
-            if (err) throw err;
-            console.log("records inserted into course_types");
-            db.end();
-            console.log("db disconnected");
-          });
+          db.end();
+          console.log('db disconnected');
         });
       });
     });
@@ -161,4 +150,24 @@ const getBitmap = (bitmap,str) => {
     });
   }
   return bitmap;
+};
+
+const courseTypesMap = new Map();
+courseTypesMap.set("DC",0);
+courseTypesMap.set("DE",1);
+courseTypesMap.set("MINOR",2);
+courseTypesMap.set("OE",3);
+courseTypesMap.set("PRF",4);
+courseTypesMap.set("REGULAR",5);
+courseTypesMap.set("FIRST-HALF",6);
+courseTypesMap.set("SECOND-HALF",7);
+
+const getCourseTypesBitmap = (courseTypes) => {
+  let types = "";
+  types = types.padStart(32,'0');
+  console.log(courseTypes);
+  courseTypes.forEach(ctype => {
+    types = types.substring(0,courseTypesMap.get(ctype)) + '1' + types.substring(courseTypesMap.get(ctype)+1);
+  });
+  return types;
 }
