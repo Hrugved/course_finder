@@ -13,7 +13,7 @@ const db = mysql.createConnection({
 db.connect();
 console.log("db connected");
 
-const query_setup = fs.readFileSync(path.join(__dirname, '../sql/setup.sql')).toString();
+const query_setup = fs.readFileSync(path.join(__dirname, './setup.sql')).toString();
 
 db.query(query_setup, function (err, _) {
   if (err) throw err;

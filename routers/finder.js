@@ -8,6 +8,7 @@ router.get('/ping', async (req,res ) => {
 })
 
 router.get('/courses/all', async (req,res) => {
+    const res = 
     con.query(sql, function (err, result) {
         if (err) throw err;
         console.log("Result: " + result);

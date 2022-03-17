@@ -34,7 +34,7 @@ const query_filter = (db, filter) => {
     SELECT * FROM course_filtered_types_branch_credits_with_clash
       INNER JOIN course_instructors USING (course_id)
       INNER JOIN instructor USING (inst_id)
-  ) SELECT course_id,course_name,course_name_extended,branch,credits,credits_extended,sched_discussion,sched_tutorial,sched_practical,course_type_bitmap,clash,
+  ) SELECT course_id,course_name,course_name_extended,branch,credits,credits_extended,sched_discussion,sched_tutorial,sched_practical,sched_practical,LPAD((CONV(HEX(course_type_bitmap),16,2)),32,'0') AS course_type_bitmap, sched_bitmap,clash,
     GROUP_CONCAT( inst_name ) as "inst_names",
     GROUP_CONCAT( inst_email ) as "inst_emails",
     GROUP_CONCAT( inst_id ) as "inst_ids" FROM course_filtered_types_branch_credits_with_clash_with_insts`;
@@ -45,7 +45,15 @@ const query_filter = (db, filter) => {
   // console.log(sql);
   db.query(sql, function (err, res) {
     if (err) throw err;
-    console.log(res.map(x => x.course_name).join(','));
+    res.forEach(row => {
+      let sched_bitmap = ''
+      row.sched_bitmap.forEach(el => {
+        sched_bitmap += el.toString(2).padStart(8,'0')
+      });
+      row.sched_bitmap = sched_bitmap;
+    });
+    // console.log(res.map(x => x.course_name+" -> "+x.sched_bitmap).join(' | '));
+    console.log(JSON.stringify(res));
     db.end();
     console.log('db disconnected');
   });
