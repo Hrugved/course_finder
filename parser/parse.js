@@ -17,15 +17,12 @@ const query_setup = fs
   .readFileSync(path.join(__dirname, "./setup.sql"))
   .toString();
 
-db.query(query_setup, function (err, _) {
-  if (err) throw err;
-  console.log("Created tables");
-  readXlsxFile("./Course_Schedule_2021-22-2-converted.xlsx").then((rows) => {
-    rows.shift(); // skip header
-    rows.forEach((row) => {
-      const branch = row[1].toUpperCase().replace(/'/g, "\\'");
+function asyncFunction(row) {
+ return new Promise((resolve, reject) => {
+   setTimeout(() => {
+      const branch = row[1].toUpperCase().replace(/(\r\n|\n|\r)/gm, "").replace(/'/g, "\\'");
       // console.log(branch);
-      const course_raw = row[2].toUpperCase().replace(/'/g, "\\'");
+      const course_raw = row[2].toUpperCase().replace(/(\r\n|\n|\r)/gm, "").replace(/'/g, "\\'");
       const course_name_extended = course_raw
         .substring(0, course_raw.indexOf("("))
         .trim();
@@ -34,7 +31,7 @@ db.query(query_setup, function (err, _) {
         .substring(course_raw.indexOf("(") + 1, course_raw.indexOf(")"))
         .trim();
       // console.log(course_name);
-      const credits_raw = row[4].toUpperCase();
+      const credits_raw = row[4].replace(/(\r\n|\n|\r)/gm, "").toUpperCase();
       const credits_extended = credits_raw
         .substring(0, credits_raw.indexOf("("))
         .replace(/'/g, "\\'")
@@ -46,14 +43,14 @@ db.query(query_setup, function (err, _) {
           .trim()
       );
       // console.log(credits);
-      const course_type = row[5].toUpperCase().replace(/'/g, "\\'");
+      const course_type = row[5].toUpperCase().replace(/(\r\n|\n|\r)/gm, "").replace(/'/g, "\\'");
       let course_type_list = course_type.split(/,|\//); // comma or forward-slash
       course_type_list = course_type_list.map((raw) =>
         raw.replace(/\s/g, "").trim()
       );
       course_types_bitmap = getCourseTypesBitmap(course_type_list);
       // console.log(course_types_bitmap);
-      let instructors = row[6].toUpperCase().replace(/'/g, "\\'").split(",");
+      let instructors = row[6].toUpperCase().replace(/'/g, "\\'").replace(/(\r\n|\n|\r)/gm, "").split(",");
       instructors = instructors.map((raw) =>
         raw.substring(0, raw.indexOf("(")).trim()
       );
@@ -99,6 +96,7 @@ db.query(query_setup, function (err, _) {
           console.log(
             `failed inserting into table course: ${row[0]}, ${sql_course}`
           );
+          resolve(row);
         }
         let sql_instructor = `INSERT IGNORE INTO instructor VALUES`;
         instructors.forEach((inst, i) => {
@@ -110,6 +108,7 @@ db.query(query_setup, function (err, _) {
             console.log(
               `failed inserting into table instructor: ${row[0]}, ${sql_instructor}`
             );
+            resolve(row);
           }
           let sql_course_instructors = `INSERT IGNORE INTO course_instructors VALUES`;
           instructors.forEach((inst_name) => {
@@ -121,10 +120,27 @@ db.query(query_setup, function (err, _) {
               console.log(
                 `failed inserting into table course_instructors: ${row[0]}, ${sql_course_instructors}`
               );
+              resolve(row);
             }
+            resolve(row);
           });
         });
       });
+   }, Math.random()*2000)// random delay to stagger order of returns
+ })
+
+}
+
+db.query(query_setup, function (err, _) {
+  if (err) throw err;
+  console.log("Created tables");
+  readXlsxFile("./Course_Schedule_2021-22-2-converted.xlsx").then((rows) => {
+    rows.shift(); // skip header
+    let requests = rows.map(asyncFunction);
+    Promise.all(requests).then(() => {
+      db.end();
+      console.log('db disconnected');
+      return;
     });
   });
 });

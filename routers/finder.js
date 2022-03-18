@@ -9,9 +9,8 @@ router.get('/ping', async (req,res ) => {
 })
 
 router.get('/', async (req,res) => {
-    // console.log(req.body.filter);
     const sql = query.get_sql_query(req.body.filter);
-    // console.log(sql);
+    console.log(sql);
     db.query(sql, function (err, data) {
         if (err) {
             res.status(400).send(null);
