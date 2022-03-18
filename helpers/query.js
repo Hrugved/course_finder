@@ -10,11 +10,14 @@ query_filter(db,{
 })
 */
 
-const query_filter = (db, filter) => {
+const get_sql_query = (filter) => {
   let sql = `WITH course_filtered_types AS (
     SELECT * FROM course`;
   if(filter.courseTypesBitmap) {
-    sql += ` WHERE ((b'${filter.courseTypesBitmap}' | course_type_bitmap) = course_type_bitmap)`;
+    sql += ` WHERE (((b'${filter.courseTypesBitmap}' | course_type_bitmap) = course_type_bitmap))`;
+  }
+  if(filter.courseTypesNotBitmap) {
+    sql += ` AND (((b'${filter.courseTypesNotBitmap}' & course_type_bitmap) = 0))`;
   }
   sql += `), course_filtered_types_branch AS (
     SELECT * FROM course_filtered_types`;
@@ -32,7 +35,7 @@ const query_filter = (db, filter) => {
     SELECT * FROM course_filtered_types_branch_credits_with_clash
       INNER JOIN course_instructors USING (course_id)
       INNER JOIN instructor USING (inst_id)
-  ) SELECT course_id,course_name,course_name_extended,branch,credits,credits_extended,sched_discussion,sched_tutorial,sched_practical,course_type_bitmap,clash,
+  ) SELECT course_id,course_name,course_name_extended,branch,credits,credits_extended,sched_discussion,sched_tutorial,sched_practical,sched_practical,LPAD((CONV(HEX(course_type_bitmap),16,2)),32,'0') AS course_type_bitmap, sched_bitmap,clash,
     GROUP_CONCAT( inst_name ) as "inst_names",
     GROUP_CONCAT( inst_email ) as "inst_emails",
     GROUP_CONCAT( inst_id ) as "inst_ids" FROM course_filtered_types_branch_credits_with_clash_with_insts`;
@@ -41,12 +44,17 @@ const query_filter = (db, filter) => {
   }
   sql += ` GROUP BY course_id;`;
   // console.log(sql);
-  db.query(sql, function (err, res) {
-    if (err) throw err;
-    console.log(res.map(x => x.schedBitmap).join(','));
-    db.end();
-    console.log('db disconnected');
-  });
+  return sql;
 };
 
-export {query_filter}
+const parse_sched_bitmap = (_rows) => {
+  _rows.forEach(row => {
+      let sched_bitmap = ''
+      row.sched_bitmap.forEach(el => {
+        sched_bitmap += el.toString(2).padStart(8,'0')
+      });
+      row.sched_bitmap = sched_bitmap;
+    });
+};
+
+module.exports = {get_sql_query, parse_sched_bitmap}
