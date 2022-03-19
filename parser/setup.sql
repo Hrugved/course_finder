@@ -8,7 +8,7 @@ CREATE TABLE instructor (
 
 CREATE TABLE course (
 	course_id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    course_name varchar(10) NOT NULL UNIQUE,
+    course_name varchar(10) NOT NULL,
     course_name_extended varchar(255) NOT NULL,
     branch varchar(10) NOT NULL,
     credits tinyint unsigned NOT NULL,
@@ -18,7 +18,9 @@ CREATE TABLE course (
     sched_practical varchar(100),
     sched_bitmap BINARY(180) NOT NULL,
     course_type varchar(255) NOT NULL,
-    course_type_bitmap BINARY(4) NOT NULL
+    course_type_bitmap BINARY(4) NOT NULL,
+    semester varchar(20) NOT NULL,
+    UNIQUE (course_name,semester)
 );
 
 CREATE TABLE course_instructors (

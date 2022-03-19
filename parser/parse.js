@@ -13,6 +13,8 @@ const db = mysql.createConnection({
 db.connect();
 console.log("db connected");
 
+const semester = "22-even";
+
 const query_setup = fs
   .readFileSync(path.join(__dirname, "./setup.sql"))
   .toString();
@@ -90,7 +92,7 @@ function asyncFunction(row) {
         sched_bitmap = getBitmap(sched_bitmap, sched_practical);
       }
       // console.log(sched_bitmap);
-      let sql_course = `INSERT IGNORE INTO course VALUES (DEFAULT, '${course_name}', '${course_name_extended}', '${branch}', ${credits}, '${credits_extended}', '${sched_discussion}', '${sched_tutorial}', '${sched_practical}', b'${sched_bitmap}', '${course_type}', b'${course_types_bitmap}' );`;
+      let sql_course = `INSERT IGNORE INTO course VALUES (DEFAULT, '${course_name}', '${course_name_extended}', '${branch}', ${credits}, '${credits_extended}', '${sched_discussion}', '${sched_tutorial}', '${sched_practical}', b'${sched_bitmap}', '${course_type}', b'${course_types_bitmap}', '${semester}' );`;
       db.query(sql_course, function (err, result) {
         if (err) {
           console.log(

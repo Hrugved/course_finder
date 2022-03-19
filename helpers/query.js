@@ -20,21 +20,21 @@ let freeSchedBitmap = "";
 freeSchedBitmap = freeSchedBitmap.padStart(1440, "0");
 
 const get_sql_query = (filter) => {
-  let sql = `WITH course_filtered_types AS (
-    SELECT * FROM course`;
+  let sql = `WITH course_sem AS ( SELECT * FROM course WHERE semester='${filter.semester}' ), course_sem_types AS (
+    SELECT * FROM course_sem`;
   if(filter && filter.courseTypesBitmap) {
     sql += ` WHERE (((b'${filter.courseTypesBitmap}' | course_type_bitmap) = course_type_bitmap))`;
   }
   if(filter && filter.courseTypesNotBitmap) {
     sql += ` AND ((HEX(b'${filter.courseTypesNotBitmap}' & course_type_bitmap) = 0))`;
   }
-  sql += `), course_filtered_types_branch AS (
-    SELECT * FROM course_filtered_types`;
+  sql += `), course_sem_types_branch AS (
+    SELECT * FROM course_sem_types`;
   if(filter && filter.branchList) {
     sql += ` WHERE branch in (${filter.branchList.map(b => `"${b}"`).join(',')})`;
   }
-  sql += `), course_filtered_types_branch_credits AS (
-    SELECT * FROM course_filtered_types_branch`;
+  sql += `), course_sem_types_branch_credits AS (
+    SELECT * FROM course_sem_types_branch`;
   if(filter && filter.credits) {
     sql += ` WHERE credits BETWEEN ${filter.credits.min || 0} AND ${filter.credits.max || 50}`;
   }
@@ -43,16 +43,16 @@ const get_sql_query = (filter) => {
     schedBitmap = filter.schedBitmap;
   }
   
-  sql += `), course_filtered_types_branch_credits_with_clash AS (
-    SELECT *, (CONV(HEX(sched_bitmap & b'${schedBitmap}'),16,10)!=0) AS clash FROM course_filtered_types_branch_credits
-  ), course_filtered_types_branch_credits_with_clash_with_insts AS (
-    SELECT * FROM course_filtered_types_branch_credits_with_clash
+  sql += `), course_sem_types_branch_credits_with_clash AS (
+    SELECT *, (CONV(HEX(sched_bitmap & b'${schedBitmap}'),16,10)!=0) AS clash FROM course_sem_types_branch_credits
+  ), course_sem_types_branch_credits_with_clash_with_insts AS (
+    SELECT * FROM course_sem_types_branch_credits_with_clash
       INNER JOIN course_instructors USING (course_id)
       INNER JOIN instructor USING (inst_id)
   ) SELECT course_id,course_name,course_name_extended,branch,credits,credits_extended,sched_discussion,sched_tutorial,sched_practical,sched_practical,course_type,LPAD((CONV(HEX(course_type_bitmap),16,2)),32,'0') AS course_type_bitmap, sched_bitmap,clash,
     GROUP_CONCAT( inst_name ) as "inst_names",
     GROUP_CONCAT( inst_email ) as "inst_emails",
-    GROUP_CONCAT( inst_id ) as "inst_ids" FROM course_filtered_types_branch_credits_with_clash_with_insts`;
+    GROUP_CONCAT( inst_id ) as "inst_ids" FROM course_sem_types_branch_credits_with_clash_with_insts`;
   if(filter && filter.noClash) {
     sql += ` WHERE clash=0`;  
   }
