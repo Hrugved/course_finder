@@ -1,6 +1,7 @@
 /** 
 {
     "filter": {
+        "semester": "22-even",
         "noClash": true,
         "courseTypesNotBitmap": "00000100000000000000000000000000",
         "courseTypesBitmap": "10000000000000000000000000000000",
