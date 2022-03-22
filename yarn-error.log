@@ -1,0 +1,53 @@
+Arguments: 
+  /usr/local/bin/node /usr/local/Cellar/yarn/1.22.17_2/libexec/bin/yarn.js add read-excel-file
+
+PATH: 
+  /usr/local/opt/gradle@6/bin:/usr/local/opt/ant@1.9/bin:/Users/hrugvedwath/flutter/bin:/Users/hrugvedwath/.jenv/shims:/usr/local/lib/node_modules:/usr/local/opt/llvm/bin:/usr/local/opt/llvm/bin:/Users/hrugvedwath/opt/anaconda3/bin:/Applications/anaconda3/bin:/Users/hrugvedwath/mongodb/bin/mongod:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/hrugvedwath/Library/Android/sdk/tools:/Users/hrugvedwath/Library/Android/sdk/platform-tools:/Users/hrugvedwath/.web3j:/Users/hrugvedwath/.rvm/bin:/Users/hrugvedwath/.web3j:/Users/hrugvedwath/Desktop/courses/nand2tetris/tools
+
+Yarn version: 
+  1.22.17
+
+Node version: 
+  16.8.0
+
+Platform: 
+  darwin x64
+
+Trace: 
+  Error: EACCES: permission denied, unlink '/Users/hrugvedwath/Desktop/cs315/course_finder_backend/node_modules/nodemon/node_modules/.bin/semver'
+
+npm manifest: 
+  {
+    "name": "task-course_finder",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+      "start": "node src/index.js",
+      "dev": "env-cmd -f ./config/dev.env nodemon src/index.js",
+      "test": "env-cmd -f ./config/test.env jest --watch --runInBand"
+    },
+    "jest": {
+      "testEnvironment": "node"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+      "cors": "^2.8.5",
+      "express": "^4.17.1",
+      "mysql": "^2.18.1"
+    },
+    "devDependencies": {
+      "env-cmd": "^10.0.1",
+      "jest": "^27.5.1",
+      "nodemon": "^2.0.15",
+      "supertest": "^4.0.2"
+    }
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  

@@ -2,12 +2,12 @@
 {
     "filter": {
         "semester": "22-even",
-        "noClash": true,
-        "courseTypesNotBitmap": "00000100000000000000000000000000",
-        "courseTypesBitmap": "10000000000000000000000000000000",
-        "branchList": [
-            "AE"
-        ],
+        "clash": false,
+        "courseTypeList": {
+          "include": ["DE","DC"],
+          "exclude": ["REGULAR"]
+        },
+        "branchList": ["AE","CHM"],
         "credits": {
             "min": 8,
             "max": 9
@@ -20,50 +20,49 @@
 let freeSchedBitmap = "";
 freeSchedBitmap = freeSchedBitmap.padStart(1440, "0");
 
-const get_sql_query = (filter,type) => {
-  let sql = `WITH course_sem AS ( SELECT * FROM course WHERE semester='${filter.semester}' ), course_sem_types AS (
-    SELECT * FROM course_sem`;
-  if(filter && filter.courseTypesBitmap) {
-    sql += ` WHERE (((b'${filter.courseTypesBitmap}' | course_type_bitmap) = course_type_bitmap))`;
+const get_all = (semester) => {
+  return `WITH insts AS ( 
+    SELECT course_id, 
+    GROUP_CONCAT( inst_name ) as "inst_names",
+      GROUP_CONCAT( inst_email ) as "inst_emails",
+      GROUP_CONCAT( inst_id ) as "inst_ids"
+    FROM course_instructors 
+      INNER JOIN instructor USING (inst_id)
+      GROUP BY course_id),
+  course_semester AS (SELECT * FROM course WHERE semester='${semester}' ) 
+  SELECT * FROM course_semester INNER JOIN insts using (course_id);`
+}
+
+const get_filtered = (filter) => {
+  let sql = `WITH course_sem AS ( SELECT * FROM course WHERE semester='${filter.semester}' ),`
+  if(filter.courseTypesList) {
+    sql += ` course_include_types AS ( SELECT course_id FROM course_types WHERE course_type IN (${filter.courseTypesList.include.map(b => `"${b}"`).join(',')})),`;
+    sql += `course_exclude_types AS ( SELECT * FROM course_types WHERE course_type IN (${filter.courseTypesList.exclude.map(b => `"${b}"`).join(',')})),`;
+    sql += `course_filtered_types AS ( SELECT course_id FROM course_include_types LEFT JOIN course_exclude_types USING (course_id) WHERE course_type IS NULL),`;
+    sql += `course_sem_types AS ( SELECT * FROM  course_sem INNER JOIN course_filtered_types USING (course_id) GROUP BY course_id),`;
+  } else {
+    sql += `course_sem_types AS ( SELECT * FROM  course_sem),`
   }
-  if(filter && filter.courseTypesNotBitmap) {
-    sql += ` AND ((HEX(b'${filter.courseTypesNotBitmap}' & course_type_bitmap) = 0))`;
-  }
-  sql += `), course_sem_types_branch AS (
-    SELECT * FROM course_sem_types`;
-  if(filter && filter.branchList) {
+  sql += `course_sem_types_branch AS (SELECT * FROM course_sem_types`;
+  if(filter.branchList) {
     sql += ` WHERE branch in (${filter.branchList.map(b => `"${b}"`).join(',')})`;
   }
   sql += `), course_sem_types_branch_credits AS (
     SELECT * FROM course_sem_types_branch`;
-  if(filter && filter.credits) {
+  if(filter.credits) {
     sql += ` WHERE credits BETWEEN ${filter.credits.min || 0} AND ${filter.credits.max || 50}`;
   }
   let schedBitmap = freeSchedBitmap;
-  if(filter && filter.schedBitmap) {
+  if(filter.schedBitmap) {
     schedBitmap = filter.schedBitmap;
   }
-  
   sql += `), course_sem_types_branch_credits_with_clash AS (
     SELECT *, (CONV(HEX(sched_bitmap & b'${schedBitmap}'),16,10)!=0) AS clash FROM course_sem_types_branch_credits
-  ), course_sem_types_branch_credits_with_clash_with_insts AS (
-    SELECT * FROM course_sem_types_branch_credits_with_clash
-      INNER JOIN course_instructors USING (course_id)
-      INNER JOIN instructor USING (inst_id)
-  )`;
-  if(type===1) {
-    sql += ` SELECT course_id,course_name,course_name_extended,branch,credits,credits_extended,sched_discussion,sched_tutorial,sched_practical,sched_practical,course_type,LPAD((CONV(HEX(course_type_bitmap),16,2)),32,'0') AS course_type_bitmap, sched_bitmap,clash,
-    GROUP_CONCAT( inst_name ) as "inst_names",
-    GROUP_CONCAT( inst_email ) as "inst_emails",
-    GROUP_CONCAT( inst_id ) as "inst_ids" FROM course_sem_types_branch_credits_with_clash_with_insts`;
-  } else if(type===2) {
-    sql += `SELECT course_id,clash FROM course_sem_types_branch_credits_with_clash_with_insts`
-  }
-  if(filter && filter.noClash) {
+  ) SELECT course_id,clash FROM course_sem_types_branch_credits_with_clash`;
+  if(!filter.clash) {
     sql += ` WHERE clash=0`;  
   }
-  sql += ` GROUP BY course_id;`;
-  // console.log(sql);
+  sql += `;`;
   return sql;
 };
 
@@ -77,4 +76,4 @@ const parse_sched_bitmap = (_rows) => {
     });
 };
 
-module.exports = {get_sql_query, parse_sched_bitmap}
+module.exports = {get_all, get_filtered, parse_sched_bitmap}

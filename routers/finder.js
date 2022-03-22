@@ -1,6 +1,6 @@
 const express = require('express')
 const db = require('../db/connection')
-const { courseTypesMap } = require('../helpers/courseTypes')
+const { courseTypesList } = require('../helpers/courseTypes')
 const query = require('../helpers/query')
 const router = new express.Router()
 
@@ -31,15 +31,11 @@ router.get('/init', async (req,res) => {
     const out = {
         all_courses: null,
         sched_bitmap: "",
-        course_types_included: "",
-        course_types_excluded: "",
-        course_types: [...courseTypesMap],
+        course_types_list: courseTypesList,
         branch_list: null
     }
-    out.course_types_included = out.course_types_included.padStart(32, "0");
-    out.course_types_excluded = out.course_types_excluded.padStart(32, "0");
     out.sched_bitmap = out.sched_bitmap.padStart(1440, "0");
-    let sql = query.get_sql_query({semester: req.query.semester},1);
+    let sql = query.get_all(req.query.semester);
     db.query(sql, function (err, data) {
         if (err) {
             res.status(400).send(null);
@@ -60,8 +56,10 @@ router.get('/init', async (req,res) => {
     });
 })
 
-router.get('/filter', async (req,res) => {
-    const sql = query.get_sql_query(req.body.filter,2);
+router.post('/filter', async (req,res) => {
+    console.log(req.body.filter);
+    const sql = query.get_filtered(req.body.filter);
+    console.log(sql);
     db.query(sql, function (err, data) {
         if (err) {
             res.status(400).send(null);

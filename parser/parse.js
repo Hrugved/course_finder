@@ -46,12 +46,11 @@ function asyncFunction(row) {
       );
       // console.log(credits);
       const course_type = row[5].toUpperCase().replace(/(\r\n|\n|\r)/gm, "").replace(/'/g, "\\'");
-      let course_type_list = course_type.split(/,|\//); // comma or forward-slash
-      course_type_list = course_type_list.map((raw) =>
+      let course_types_list = course_type.split(/,|\//); // comma or forward-slash
+      course_types_list = course_types_list.map((raw) =>
         raw.replace(/\s/g, "").trim()
       );
-      course_types_bitmap = getCourseTypesBitmap(course_type_list);
-      // console.log(course_types_bitmap);
+      // console.log(course_types_list);
       let instructors = row[6].toUpperCase().replace(/'/g, "\\'").replace(/(\r\n|\n|\r)/gm, "").split(",");
       instructors = instructors.map((raw) =>
         raw.substring(0, raw.indexOf("(")).trim()
@@ -92,7 +91,7 @@ function asyncFunction(row) {
         sched_bitmap = getBitmap(sched_bitmap, sched_practical);
       }
       // console.log(sched_bitmap);
-      let sql_course = `INSERT IGNORE INTO course VALUES (DEFAULT, '${course_name}', '${course_name_extended}', '${branch}', ${credits}, '${credits_extended}', '${sched_discussion}', '${sched_tutorial}', '${sched_practical}', b'${sched_bitmap}', '${course_type}', b'${course_types_bitmap}', '${semester}' );`;
+      let sql_course = `INSERT IGNORE INTO course VALUES (DEFAULT, '${course_name}', '${course_name_extended}', '${branch}', ${credits}, '${credits_extended}', '${course_type}', '${sched_discussion}', '${sched_tutorial}', '${sched_practical}', b'${sched_bitmap}', '${semester}' );`;
       db.query(sql_course, function (err, result) {
         if (err) {
           console.log(
@@ -100,31 +99,44 @@ function asyncFunction(row) {
           );
           resolve(row);
         }
-        let sql_instructor = `INSERT IGNORE INTO instructor VALUES`;
-        instructors.forEach((inst, i) => {
-          sql_instructor += ` (DEFAULT, '${inst}', '${instructors_email[i]}'),`;
+        let sql_course_types = `INSERT IGNORE INTO course_types VALUES`;
+        course_types_list.forEach((course_type) => {
+          sql_course_types += `((SELECT course_id FROM course WHERE course_name = '${course_name}' LIMIT 1),'${course_type}'),`;
         });
-        sql_instructor = sql_instructor.replace(/.$/, ";");
-        db.query(sql_instructor, function (err, result) {
+        sql_course_types = sql_course_types.replace(/.$/, ";");       
+        db.query(sql_course_types, function (err, result) {
           if (err) {
             console.log(
-              `failed inserting into table instructor: ${row[0]}, ${sql_instructor}`
+              `failed inserting into table course: ${row[0]}, ${sql_course_types}`
             );
             resolve(row);
           }
-          let sql_course_instructors = `INSERT IGNORE INTO course_instructors VALUES`;
-          instructors.forEach((inst_name) => {
-            sql_course_instructors += `((SELECT course_id FROM course WHERE course_name = '${course_name}' LIMIT 1),(SELECT inst_id FROM instructor WHERE inst_name = '${inst_name}' LIMIT 1)),`;
+          let sql_instructor = `INSERT IGNORE INTO instructor VALUES`;
+          instructors.forEach((inst, i) => {
+            sql_instructor += ` (DEFAULT, '${inst}', '${instructors_email[i]}'),`;
           });
-          sql_course_instructors = sql_course_instructors.replace(/.$/, ";");
-          db.query(sql_course_instructors, function (err, result) {
+          sql_instructor = sql_instructor.replace(/.$/, ";");
+          db.query(sql_instructor, function (err, result) {
             if (err) {
               console.log(
-                `failed inserting into table course_instructors: ${row[0]}, ${sql_course_instructors}`
+                `failed inserting into table instructor: ${row[0]}, ${sql_instructor}`
               );
               resolve(row);
             }
-            resolve(row);
+            let sql_course_instructors = `INSERT IGNORE INTO course_instructors VALUES`;
+            instructors.forEach((inst_name) => {
+              sql_course_instructors += `((SELECT course_id FROM course WHERE course_name = '${course_name}' LIMIT 1),(SELECT inst_id FROM instructor WHERE inst_name = '${inst_name}' LIMIT 1)),`;
+            });
+            sql_course_instructors = sql_course_instructors.replace(/.$/, ";");
+            db.query(sql_course_instructors, function (err, result) {
+              if (err) {
+                console.log(
+                  `failed inserting into table course_instructors: ${row[0]}, ${sql_course_instructors}`
+                );
+                resolve(row);
+              }
+              resolve(row);
+            });
           });
         });
       });
@@ -210,17 +222,4 @@ const getBitmap = (bitmap, str) => {
     });
   }
   return bitmap;
-};
-
-const getCourseTypesBitmap = (courseTypes) => {
-  let types = "";
-  types = types.padStart(32, "0");
-  // console.log(courseTypes);
-  courseTypes.forEach((ctype) => {
-    types =
-      types.substring(0, courseTypesMap.get(ctype)) +
-      "1" +
-      types.substring(courseTypesMap.get(ctype) + 1);
-  });
-  return types;
 };
