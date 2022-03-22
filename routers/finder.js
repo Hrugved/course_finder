@@ -22,37 +22,51 @@ router.get('/semesters', async (req,res) => {
 })
 
 router.get('/init', async (req,res) => {
+    if(req.query.semester==null) {
+        console.log('semester not found in params');
+        res.status(400).send("semester not found in params");
+        return;
+    } 
+    console.log('semester:'+req.query.semester);
     const out = {
         all_courses: null,
         sched_bitmap: "",
         course_types_included: "",
         course_types_excluded: "",
-        course_types_map: [...courseTypesMap]
+        course_types: [...courseTypesMap],
+        branch_list: null
     }
     out.course_types_included = out.course_types_included.padStart(32, "0");
     out.course_types_excluded = out.course_types_excluded.padStart(32, "0");
     out.sched_bitmap = out.sched_bitmap.padStart(1440, "0");
-    const sql = query.get_sql_query({semester: req.body.semester});
+    let sql = query.get_sql_query({semester: req.query.semester},1);
     db.query(sql, function (err, data) {
         if (err) {
             res.status(400).send(null);
             throw err;
         }
         query.parse_sched_bitmap(data);
-        // out.all_courses_map = new Map(data.map(i => [i.course_id, i]));
         out.all_courses = data;
-        res.status(200).send(out);
+        sql = `SELECT branch FROM course WHERE semester='${req.query.semester}' GROUP BY branch`;
+        db.query(sql, function (err, data) {
+            if (err) {
+                res.status(400).send(null);
+                throw err;
+            }
+            out.branch_list = data.map(e => e.branch);
+            console.log(out);
+            res.status(200).send(out);
+        });
     });
 })
 
 router.get('/filter', async (req,res) => {
-    const sql = query.get_sql_query(req.body.filter);
+    const sql = query.get_sql_query(req.body.filter,2);
     db.query(sql, function (err, data) {
         if (err) {
             res.status(400).send(null);
             throw err;
         }
-        query.parse_sched_bitmap(data);
         res.status(200).send(data);
     });
 })
