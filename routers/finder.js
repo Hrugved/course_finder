@@ -27,7 +27,7 @@ router.get('/init', async (req,res) => {
         res.status(400).send("semester not found in params");
         return;
     } 
-    console.log('semester:'+req.query.semester);
+    // console.log('semester:'+req.query.semester);
     const out = {
         all_courses: null,
         sched_bitmap: "",
@@ -50,7 +50,8 @@ router.get('/init', async (req,res) => {
                 throw err;
             }
             out.branch_list = data.map(e => e.branch);
-            console.log(out);
+            console.log('init all_courses len:'+out.all_courses.length);
+            // console.log(out);
             res.status(200).send(out);
         });
     });
@@ -65,6 +66,7 @@ router.post('/filter', async (req,res) => {
             res.status(400).send(null);
             throw err;
         }
+        console.log('filter len:'+data.length);
         res.status(200).send(data);
     });
 })
