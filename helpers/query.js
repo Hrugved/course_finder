@@ -64,7 +64,7 @@ const get_filtered = (filter) => {
   if(!filter.clash) {
     sql += ` HAVING clash=0`;  // mysql dont allow using alias column with WHERE clause
   }
-  sql += `;`;
+  sql += ` ORDER BY course_name;`;
   return sql;
 };
 
