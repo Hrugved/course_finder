@@ -17,7 +17,7 @@ const courseTypesList = [
   "UGP-1",
   "UGP-2",
   "UGP-3",
-  "UGP-4"
+  "UGP-4",
 ]
 
 module.exports = {courseTypesList}

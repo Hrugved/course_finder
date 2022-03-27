@@ -31,8 +31,12 @@ router.get('/init', async (req,res) => {
     const out = {
         all_courses: null,
         sched_bitmap: "",
-        course_types_list: courseTypesList,
-        branch_list: null
+        course_types_list: null,
+        branch_list: null,
+        credits: {
+            min: 0,
+            max: 14
+        }
     }
     out.sched_bitmap = out.sched_bitmap.padStart(1440, "0");
     let sql = query.get_all(req.query.semester);
@@ -43,16 +47,32 @@ router.get('/init', async (req,res) => {
         }
         query.parse_sched_bitmap(data);
         out.all_courses = data;
-        sql = `SELECT branch FROM course WHERE semester='${req.query.semester}' GROUP BY branch`;
+        sql = `SELECT branch FROM course WHERE semester='${req.query.semester}' GROUP BY branch ORDER BY branch;`;
         db.query(sql, function (err, data) {
             if (err) {
                 res.status(400).send(null);
                 throw err;
             }
             out.branch_list = data.map(e => e.branch);
-            console.log('init all_courses len:'+out.all_courses.length);
-            // console.log(out);
-            res.status(200).send(out);
+            sql = `SELECT course_type FROM course_types GROUP BY course_type ORDER BY course_type;`;
+            db.query(sql, function (err, data) {
+                if (err) {
+                    res.status(400).send(null);
+                    throw err;
+                }
+                out.course_types_list = data.map(e => e.course_type);
+                sql = `SELECT MIN(credits) as min,MAX(credits) as max FROM course;`;
+                db.query(sql, function (err, data) {
+                    if (err) {
+                        res.status(400).send(null);
+                        throw err;
+                    }
+                    out.credits.min = data[0].min;
+                    out.credits.max = data[0].max;
+                    console.log('init all_courses len:'+out.all_courses.length);
+                    res.status(200).send(out);
+                });        
+            });   
         });
     });
 })
