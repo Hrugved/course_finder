@@ -51,15 +51,15 @@ const get_filtered = (filter) => {
   }
   sql += `), course_sem_types_branch_credits AS (
     SELECT * FROM course_sem_types_branch`;
-  if(filter.credits) {
+  if(filter.credits) {     
     sql += ` WHERE credits BETWEEN ${filter.credits.min || 0} AND ${filter.credits.max || 50}`;
   }
-  let schedBitmap = freeSchedBitmap;
-  if(filter.schedBitmap) {
-    schedBitmap = filter.schedBitmap;
+  let sched_bitmap = freeSchedBitmap;
+  if(filter.sched_bitmap) {
+    sched_bitmap = filter.sched_bitmap;
   }
   sql += `), course_sem_types_branch_credits_with_clash AS (
-    SELECT *, (CONV(HEX(sched_bitmap & b'${schedBitmap}'),16,10)!=0) AS clash FROM course_sem_types_branch_credits
+    SELECT *, (CONV(HEX(sched_bitmap & b'${sched_bitmap}'),16,10)!=0) AS clash FROM course_sem_types_branch_credits
   ) SELECT course_id,clash FROM course_sem_types_branch_credits_with_clash`;
   if(!filter.clash) {
     sql += ` HAVING clash=0`;  // mysql dont allow using alias column with WHERE clause
@@ -67,6 +67,17 @@ const get_filtered = (filter) => {
   sql += ` ORDER BY course_name;`;
   return sql;
 };
+
+const get_sched_bitmap = (course_ids) => {
+  let sql = `SELECT BIT_OR(sched_bitmap) AS sched_bitmap FROM course WHERE course_id in (${[...course_ids,'$'].map(id => `"${id}"`).join(',')})`;
+  return sql
+}
+
+const get_clash_course_ids = (course_id,course_ids) => {
+  let sql = `WITH temp AS (SELECT sched_bitmap AS course_sched_bitmap FROM course WHERE course_id=${course_id})
+  SELECT course_id FROM course CROSS JOIN temp WHERE course_id in (${[...course_ids,'$'].map(id => `"${id}"`).join(',')}) AND (CONV(HEX(sched_bitmap & course_sched_bitmap),16,10)!=0);`;
+  return sql
+}
 
 const parse_sched_bitmap = (_rows) => {
   _rows.forEach(row => {
@@ -78,4 +89,4 @@ const parse_sched_bitmap = (_rows) => {
     });
 };
 
-module.exports = {get_all, get_filtered, parse_sched_bitmap}
+module.exports = {get_all, get_filtered, parse_sched_bitmap, get_sched_bitmap, get_clash_course_ids}

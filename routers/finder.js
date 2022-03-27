@@ -91,4 +91,42 @@ router.post('/filter', async (req,res) => {
     });
 })
 
+router.post('/sched_bitmap', async (req,res) => { 
+    if(req.body.selected_course_ids==null) {
+        res.status(400).send(null);
+        return
+    }
+    console.log(req.body.selected_course_ids);
+    const sql = query.get_sched_bitmap(req.body.selected_course_ids); 
+    console.log(sql);
+    db.query(sql, function (err, data) {
+        if (err) {
+            res.status(400).send(null); 
+            throw err;
+        }
+        query.parse_sched_bitmap(data);
+        res.status(200).send(data[0].sched_bitmap);
+    }); 
+})
+
+router.post('/find-clashes', async (req,res) => {
+    if(req.body.course_id==null || req.body.course_ids==null) {
+        res.status(400).send(null);
+        return
+    }
+    console.log(req.body.course_id);
+    console.log(req.body.course_ids);
+    const sql = query.get_clash_course_ids(req.body.course_id,req.body.course_ids);
+    console.log(sql);
+    db.query(sql, function (err, data) {
+        if (err) {
+            res.status(400).send(null);
+            throw err;
+        }
+        data = data.map(x => x.course_id)
+        console.log(data);
+        res.status(200).send(data);
+    });
+})
+
 module.exports = router
