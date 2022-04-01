@@ -1,5 +1,5 @@
 const express = require('express')
-const db = require('../db/connection')
+const db = require('../../db/connection')
 const { courseTypesList } = require('../helpers/courseTypes')
 const query = require('../helpers/query')
 const router = new express.Router()
