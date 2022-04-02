@@ -3,10 +3,17 @@ const mysql = require("mysql");
 const path = require("path");
 const fs = require("fs");
 const { courseTypesMap } = require("../helpers/courseTypes");
+// const db = mysql.createConnection({
+//   host: "127.0.0.1",
+//   user: "root",
+//   password: "password",
+//   database: "course_finder",
+//   multipleStatements: true,
+// });
 const db = mysql.createConnection({
   host: "127.0.0.1",
-  user: "root",
-  password: "password",
+  user:"root",
+  password: "314159",
   database: "course_finder",
   multipleStatements: true,
 });
