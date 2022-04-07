@@ -1,8 +1,8 @@
 const mysql = require('mysql');
 const connection = mysql.createConnection({
-host     : '127.0.0.1',
-user     : 'root',
-password : '314159',
-database : 'course_finder'
+  host     : "course-navigator.c8qlps2aghun.us-east-1.rds.amazonaws.com",
+  user     : "admin",
+  password : "C6bwtf4ocp#",
+  database : "course_finder"
 });
 module.exports = connection
