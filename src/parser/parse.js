@@ -104,6 +104,7 @@ function asyncFunction(row) {
           console.log(
             `failed inserting into table course: ${row[0]}, ${sql_course}`
           );
+          console.log("Inserted into table course")
           resolve(row);
         }
         let sql_course_types = `INSERT IGNORE INTO course_types VALUES`;
@@ -116,6 +117,7 @@ function asyncFunction(row) {
             console.log(
               `failed inserting into table course: ${row[0]}, ${sql_course_types}`
             );
+            console.log("Inserted into table course_types")
             resolve(row);
           }
           let sql_instructor = `INSERT IGNORE INTO instructor VALUES`;
@@ -128,11 +130,12 @@ function asyncFunction(row) {
               console.log(
                 `failed inserting into table instructor: ${row[0]}, ${sql_instructor}`
               );
+              console.log("Inserted into table instructor")
               resolve(row);
             }
             let sql_course_instructors = `INSERT IGNORE INTO course_instructors VALUES`;
-            instructors.forEach((inst_name) => {
-              sql_course_instructors += `((SELECT course_id FROM course WHERE course_name = '${course_name}' LIMIT 1),(SELECT inst_id FROM instructor WHERE inst_name = '${inst_name}' LIMIT 1)),`;
+            instructors_email.forEach((inst_email) => {
+              sql_course_instructors += `((SELECT course_id FROM course WHERE course_name = '${course_name}' LIMIT 1),(SELECT inst_id FROM instructor WHERE inst_email = '${inst_email}' LIMIT 1)),`;
             });
             sql_course_instructors = sql_course_instructors.replace(/.$/, ";");
             db.query(sql_course_instructors, function (err, result) {
@@ -140,6 +143,7 @@ function asyncFunction(row) {
                 console.log(
                   `failed inserting into table course_instructors: ${row[0]}, ${sql_course_instructors}`
                 );
+                console.log("Inserted into table course_instructors")
                 resolve(row);
               }
               resolve(row);
