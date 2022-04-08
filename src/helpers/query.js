@@ -30,7 +30,7 @@ const get_all = (semester) => {
       INNER JOIN instructor USING (inst_id)
       GROUP BY course_id),    
   course_semester AS (SELECT * FROM course WHERE semester='${semester}' ) 
-  SELECT * FROM course_semester INNER JOIN insts using (course_id);`
+  SELECT * FROM course_semester LEFT JOIN insts using (course_id);`
 }
 
 const get_filtered = (filter) => { 

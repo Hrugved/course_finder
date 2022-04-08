@@ -14,7 +14,8 @@ const db = mysql.createConnection({
   host     : "course-navigator.c8qlps2aghun.us-east-1.rds.amazonaws.com",
   user     : "admin",
   password : "C6bwtf4ocp#",
-  database : "course_finder"
+  database : "course_finder",
+  multipleStatements: true
 });
 db.connect();
 console.log("db connected");
